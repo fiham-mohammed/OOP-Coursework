@@ -88,13 +88,16 @@ public class FileManager {
         return v == null ? def : v;
     }
 
-    // Write the formed teams into a CSV
-    public void writeTeamsToCSV(String path, List<Participant> teams) throws IOException {
+    public void writeTeamsToCSV(String path, List<Team> teams) throws IOException {
         Path p = Paths.get(path);
         try (BufferedWriter bw = Files.newBufferedWriter(p)) {
-            bw.write("teamID,id,name,skillLevel,interest,role,personalityScore,personalityType.\n");
-            for (Participant t : teams) {
-                bw.write(t.toString());
+            bw.write("teamID,id,name,skillLevel,interest,role,personalityScore,personalityType\n");
+            // Iterate through each team
+            for (Team t : teams) {
+                // Iterate through each participant in the current team
+                for (Participant participant : t.getMembers()) {  // Renamed variable 'p' to 'participant'
+                    bw.write(participant.toCSVForTeam(t.getTeamID()) + "\n");
+                }
             }
         }
     }

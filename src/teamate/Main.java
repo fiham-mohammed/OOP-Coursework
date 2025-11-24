@@ -6,7 +6,7 @@ import java.util.concurrent.*;
 
 public class Main {
     private static final ErrorHandler EH = new ErrorHandler();
-    private static final String DEFAULT_INPUT = "/mnt/data/participants_sample.csv";
+    private static final String DEFAULT_INPUT = "C:/Users/User/Downloads/New folder/teamate_coursework_full/participants_sample.csv";
 
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
@@ -14,8 +14,10 @@ public class Main {
         PersonalityClassifier pc = new PersonalityClassifier();
         List<Participant> participants = Collections.synchronizedList(new ArrayList<>());
         SurveyManager surveyManager = new SurveyManager();  // Initialize SurveyManager
+        List<Team> teams = new ArrayList<>();
 
         System.out.println("=== TeamMate (Coursework Full Version) ===");
+
 
         while (true) {
             // Display menu
@@ -62,7 +64,7 @@ public class Main {
 
                 // Form teams with the user-defined team size
                 TeamBuilder builder = new TeamBuilder(participants, teamSize);
-                List<Team> teams = builder.formTeams();
+                teams = builder.formTeams();  // <---- assign to the persistent teams variable
                 teams.forEach(System.out::println);
             }
             else if (option == 4) {
@@ -71,8 +73,12 @@ public class Main {
                 String out = sc.nextLine().trim();
                 if (!out.isEmpty()) {
                     try {
-                        fm.writeTeamsToCSV(out, participants);
-                        EH.showInfo("Teams saved!");
+                        if (teams == null || teams.isEmpty()) { // <--- check teams is not empty
+                            EH.showError("No teams have been formed yet.");
+                        } else {
+                            fm.writeTeamsToCSV(out, teams); // <--- FIX: correct method call
+                            EH.showInfo("Teams saved!");
+                        }
                     } catch (IOException e) {
                         EH.showError("Failed to save teams: " + e.getMessage());
                     }
