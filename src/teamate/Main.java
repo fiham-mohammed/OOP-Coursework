@@ -2,7 +2,6 @@ package teamate;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.*;
 
 public class Main {
     private static final ErrorHandler EH = new ErrorHandler();
@@ -29,7 +28,7 @@ public class Main {
             handleOrganizerFlow(sc, fm, participants, pc);
         } else if (userRole == 2) {
             // Participant Flow (Start survey)
-            handleParticipantSurvey(surveyManager, participants);
+            handleParticipantSurvey(surveyManager, participants, sc);
         } else {
             System.out.println("Invalid option. Exiting.");
         }
@@ -85,8 +84,16 @@ public class Main {
     }
 
     // Handle participant survey flow
-    private static void handleParticipantSurvey(SurveyManager surveyManager, List<Participant> participants) {
-        Participant newParticipant = surveyManager.conductSurvey();
+    private static void handleParticipantSurvey(SurveyManager surveyManager, List<Participant> participants, Scanner sc) {
+        System.out.println("Enter the CSV file path to save the new participant (e.g., participants_sample.csv):");
+        String filePath = sc.nextLine().trim();
+
+        // If no file path is entered, default to "participants_sample.csv"
+        if (filePath.isEmpty()) {
+            filePath = "C:/Users/User/Downloads/New folder/teamate_coursework_full/participants_sample.csv";
+        }
+
+        Participant newParticipant = surveyManager.conductSurvey(filePath); // Pass file path to SurveyManager
         participants.add(newParticipant);
         System.out.println("[INFO] Participant added successfully.");
     }

@@ -10,6 +10,8 @@ import java.util.*;
  */
 public class FileManager {
 
+    private String personalityType;
+
     // Reads participants from the given CSV path
     public List<Participant> readParticipantsFromCSV(String path) throws IOException {
         Path p = Paths.get(path);
@@ -47,7 +49,7 @@ public class FileManager {
 
                     // Create a Participant object
                     Participant pObj = new Participant(id, name, email, interest, skill, role,
-                            q1, q2, q3, q4, q5, personalityScore);
+                            q1, q2, q3, q4, q5, personalityScore, personalityType);
 
                     // Validate personality score range (0-100)
                     int ps = pObj.getPersonalityScore();

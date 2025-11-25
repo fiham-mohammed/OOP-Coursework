@@ -1,18 +1,22 @@
 package teamate;
 
+import java.io.*;
 import java.util.Scanner;
 
 public class SurveyManager {
 
     private final Scanner sc = new Scanner(System.in);
 
+    private static int lastParticipantId = 100;
+
     // Method to conduct the interactive survey
-    public Participant conductSurvey() {
+    public Participant conductSurvey(String filePath) {
         System.out.println("\n=== New Participant Survey ===");
 
         // Collect participant details
-        System.out.print("Enter Participant ID: ");
-        String id = sc.nextLine().trim();
+        String id = generateNewParticipantId(filePath);
+
+        System.out.println("Generated Participant ID: " + id);
 
         System.out.print("Enter Name: ");
         String name = sc.nextLine().trim();
@@ -72,8 +76,12 @@ public class SurveyManager {
         // ---- Skill Level ----
         int skill = askInt("\nEnter Skill Level (1–10): ");
 
-        // Create participant object with personality type
-        return new Participant(id, name, email, interest, skill, role, q1, q2, q3, q4, q5, scaledScore);
+        Participant newParticipant = new Participant(id, name, email, interest, skill, role, q1, q2, q3, q4, q5, scaledScore, personalityType);
+
+        // Save new participant to the CSV file
+        saveParticipantToCSV(newParticipant, filePath);
+
+        return newParticipant;
     }
 
     // Helper method to ask integer questions
@@ -87,6 +95,42 @@ public class SurveyManager {
             }
         }
     }
+    // Generate new Participant ID starting from the last ID in the CSV
+    private String generateNewParticipantId(String filePath) {
+        int lastParticipantId = getLastParticipantId(filePath);
+        lastParticipantId++;  // Increment to get the next ID
+        return "P" + lastParticipantId;
+    }
+
+    // Method to read the last participant ID from the CSV file
+    private int getLastParticipantId(String filePath) {
+        int lastId = 100;  // Default ID if no participants are in the file
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // Assuming the participant ID is in the first column in each line
+                String[] tokens = line.split(",", -1);
+                String participantId = tokens[0].trim();
+
+                // Check if the ID starts with "P" and contains only numbers after "P"
+                if (participantId.startsWith("P") && participantId.length() > 1) {
+                    try {
+                        int numericId = Integer.parseInt(participantId.substring(1));  // Parse the numeric part after "P"
+                        lastId = numericId;  // Update lastId with the numeric ID
+                    } catch (NumberFormatException e) {
+                        // Skip invalid IDs or log the error
+                        System.out.println("Invalid ID format found: " + participantId);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return lastId;
+    }
+
 
     // Helper method to classify personality type based on the scaled score
     private String classifyPersonality(int score) {
@@ -95,4 +139,15 @@ public class SurveyManager {
         if (score >= 50) return "Thinker";
         return "Undefined";
     }
+    // Save the new participant to the CSV file
+    private void saveParticipantToCSV(Participant newParticipant, String filePath) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath, true))) {
+            // Write new participant data as CSV (without header)
+            bw.write(newParticipant.toCSVForParticipant());  // Correct CSV format for participant
+            bw.newLine(); // Move to the next line
+        } catch (IOException e) {
+            System.err.println("Error saving participant to CSV: " + e.getMessage());
+        }
+    }
+
 }

@@ -20,7 +20,7 @@ public class Participant {
     public Participant(String id, String name, String email,
                        String interest, int skillLevel, String role,
                        Integer q1, Integer q2, Integer q3, Integer q4, Integer q5,
-                       Integer personalityScore) {
+                       Integer personalityScore, String personalityType) {
         this.id = safe(id);
         this.name = safe(name);
         this.email = safe(email);
@@ -97,5 +97,17 @@ public class Participant {
     public String toString() {
         return String.format("%s (%s) - Role:%s Interest:%s Skill:%d Personality:%s/%d",
                 id, name, role, interest, skillLevel, personalityType, personalityScore);
+    }
+    public String toCSVForParticipant() {
+        // Format: Pxxx,Participant_x,userX@university.edu,Game,Skill,Role,PersonalityScore,PersonalityType
+        return String.format("P%s,%s,%s,%s,%d,%s,%d,%s",
+                id.substring(1),                // ID as P101, P102, etc.
+                name,  // Add Participant_ before ID for full name
+                email,                          // Email
+                interest,                       // Participant's game/interest
+                skillLevel,                     // Participant's skill level
+                role,                           // Participant's role
+                personalityScore,               // Personality score (scaled)
+                personalityType);               // Personality type (Leader, Balanced, Thinker)
     }
 }
