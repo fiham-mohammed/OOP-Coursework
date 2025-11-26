@@ -23,11 +23,11 @@ public class PersonalitySurvey extends Survey {
 
         // ---- Personality Questions (Rating 1 to 5) ----
         System.out.println("\nRate each question from 1 (Strongly Disagree) to 5 (Strongly Agree):");
-        int q1 = askInt("Q1: I enjoy taking the lead and guiding others during group activities.");
-        int q2 = askInt("Q2: I prefer analyzing situations and coming up with strategic solutions.");
-        int q3 = askInt("Q3: I work well with others and enjoy collaborative teamwork.");
-        int q4 = askInt("Q4: I am calm under pressure and can help maintain team morale.");
-        int q5 = askInt("Q5: I like making quick decisions and adapting in dynamic situations.");
+        int q1 = askInt("Q1: I enjoy taking the lead and guiding others during group activities.", 1, 5);
+        int q2 = askInt("Q2: I prefer analyzing situations and coming up with strategic solutions.", 1, 5);
+        int q3 = askInt("Q3: I work well with others and enjoy collaborative teamwork.", 1, 5);
+        int q4 = askInt("Q4: I am calm under pressure and can help maintain team morale.", 1, 5);
+        int q5 = askInt("Q5: I like making quick decisions and adapting in dynamic situations.", 1, 5);
 
         // ---- Calculate total score and scale to 100 ----
         int totalScore = q1 + q2 + q3 + q4 + q5;
@@ -43,7 +43,7 @@ public class PersonalitySurvey extends Survey {
         String role = askRole();
 
         // ---- Skill Level ----
-        int skill = askInt("\nEnter Skill Level (1–10): ");
+        int skill = askInt("Enter Skill Level (1–10)", 1, 10);
 
         // Create a new participant
         Participant newParticipant = new Participant(id, name, email, interest, skill, role, q1, q2, q3, q4, q5, scaledScore, personalityType);
@@ -56,15 +56,25 @@ public class PersonalitySurvey extends Survey {
 
 
     // Helper method to ask integer questions
-    private int askInt(String msg) {
-        while (true) {
+    private int askInt(String msg, int minValue, int maxValue) {
+        int input = -1;  // Initialize with invalid value
+
+        while (input < minValue || input > maxValue) {  // Ensure input is between minValue and maxValue
             try {
                 System.out.print(msg + ": ");
-                return Integer.parseInt(sc.nextLine().trim());
-            } catch (Exception e) {
-                System.out.println("Invalid number. Try again.");
+                input = Integer.parseInt(sc.nextLine().trim());  // Parse user input
+
+                // Validate input range (between minValue and maxValue)
+                if (input < minValue || input > maxValue) {
+                    System.out.println("Invalid input! Please enter a number between " + minValue + " and " + maxValue + ".");
+                }
+
+            } catch (NumberFormatException e) {
+                // Catch invalid numbers (non-integer input)
+                System.out.println("Invalid input! Please enter a valid number between " + minValue + " and " + maxValue + ".");
             }
         }
+        return input;  // Return the valid input
     }
 
     // Helper method to ask for interest
@@ -76,7 +86,7 @@ public class PersonalitySurvey extends Survey {
         System.out.println("4. Basketball");
         System.out.println("5. Badminton");
 
-        return switch (askInt("Enter number: ")) {
+        return switch (askInt("Enter number: ",1,5)) {
             case 1 -> "Valorant";
             case 2 -> "Dota";
             case 3 -> "FIFA";
@@ -95,7 +105,7 @@ public class PersonalitySurvey extends Survey {
         System.out.println("4. Supporter");
         System.out.println("5. Coordinator");
 
-        return switch (askInt("Enter number: ")) {
+        return switch (askInt("Enter number: ",1,5)) {
             case 1 -> "Defender";
             case 2 -> "Strategist";
             case 3 -> "Attacker";

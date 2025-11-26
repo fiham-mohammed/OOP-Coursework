@@ -95,7 +95,7 @@ public class Main {
         }
 
         // Process survey concurrently for multiple participants (if needed)
-        Participant newParticipant = surveyManager.conductSurvey(filePath); // Pass file path to SurveyManager
+        Participant newParticipant = surveyManager.conductSurvey(filePath);
         participants.add(newParticipant);
         System.out.println("[INFO] Participant added successfully.");
     }
