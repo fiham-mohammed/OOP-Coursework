@@ -2,6 +2,7 @@ package teamate;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class Main {
     private static final ErrorHandler EH = new ErrorHandler();
@@ -49,7 +50,7 @@ public class Main {
             int option = Integer.parseInt(sc.nextLine().trim());
 
             if (option == 1) {
-                // Load participants from CSV
+                // Load participants from CSV (in parallel)
                 System.out.println("Enter path to participants CSV (Enter = default):");
                 String inputPath = sc.nextLine().trim();
                 if (inputPath.isEmpty()) {
@@ -64,7 +65,7 @@ public class Main {
                 // Edit participant details (You can add edit functionality here later)
                 System.out.println("Edit functionality is not implemented yet.");
             } else if (option == 4) {
-                // Form teams from participants
+                // Form teams from participants concurrently
                 System.out.println("Enter desired team size:");
                 int teamSize = Integer.parseInt(sc.nextLine().trim());
                 formTeamsAndDisplay(sc, participants, teamSize);
@@ -93,29 +94,58 @@ public class Main {
             filePath = "C:/Users/User/Downloads/New folder/teamate_coursework_full/participants_sample.csv";
         }
 
+        // Process survey concurrently for multiple participants (if needed)
         Participant newParticipant = surveyManager.conductSurvey(filePath); // Pass file path to SurveyManager
         participants.add(newParticipant);
         System.out.println("[INFO] Participant added successfully.");
     }
 
-    // Load participants from CSV
+    // Load participants from CSV (with concurrency for parallel loading)
     private static void loadParticipantsFromCSV(FileManager fm, String inputPath, List<Participant> participants, PersonalityClassifier pc) {
+        // Use a thread pool for concurrent processing
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+
         try {
             List<Participant> loaded = fm.readParticipantsFromCSV(inputPath);
             if (loaded.isEmpty()) {
                 EH.showError("No participants loaded. Check CSV.");
                 return;
             }
+
+            // Submit tasks for each participant to process them concurrently
             for (Participant p : loaded) {
-                int score = p.getPersonalityScore();
-                if (score < 0) score = 0;
-                if (score > 100) score = 100;
-                p.setPersonalityType(pc.classify(score));
-                participants.add(p);
+                executorService.submit(new LoadParticipantTask(p, participants, pc));
             }
+
+            executorService.shutdown();
+            executorService.awaitTermination(60, TimeUnit.SECONDS);
             EH.showInfo("Loaded and classified " + participants.size() + " participants.");
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             EH.showError("Failed to load CSV: " + e.getMessage());
+        }
+    }
+
+    // Runnable task to process each participant
+    static class LoadParticipantTask implements Runnable {
+        private final Participant participant;
+        private final List<Participant> participants;
+        private final PersonalityClassifier pc;
+
+        public LoadParticipantTask(Participant participant, List<Participant> participants, PersonalityClassifier pc) {
+            this.participant = participant;
+            this.participants = participants;
+            this.pc = pc;
+        }
+
+        @Override
+        public void run() {
+            int score = participant.getPersonalityScore();
+            if (score < 0) score = 0;
+            if (score > 100) score = 100;
+            participant.setPersonalityType(pc.classify(score));
+            synchronized (participants) {
+                participants.add(participant);
+            }
         }
     }
 
@@ -127,14 +157,27 @@ public class Main {
         }
     }
 
-    // Form teams and display them
+    // Form teams and display them concurrently
     private static void formTeamsAndDisplay(Scanner sc, List<Participant> participants, int teamSize) {
+        // Use a thread pool for concurrent team formation
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         TeamBuilder builder = new TeamBuilder(participants, teamSize);
-        List<Team> newTeams = builder.formTeams();
-        teams = newTeams; // Assign the formed teams to the static variable
-        System.out.println("\n=== Formed Teams ===");
-        for (Team t : newTeams) {
-            System.out.println(t);
+
+        // Submit the team formation task to the thread pool
+        executorService.submit(() -> {
+            List<Team> newTeams = builder.formTeams();
+            teams = newTeams; // Assign the formed teams to the static variable
+            System.out.println("\n=== Formed Teams ===");
+            for (Team t : newTeams) {
+                System.out.println(t);
+            }
+        });
+
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(60, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

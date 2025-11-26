@@ -13,6 +13,39 @@ public class TeamBuilder {
     private final int teamSize;
     // Common roles expected from starter pack; adjust as needed.
     private final List<String> requiredRoles = Arrays.asList("Defender", "Strategist", "Attacker", "Supporter");
+    private static final int MAX_THREADS = 10; // Adjust based on system and data size
+
+    public void formTeamsInParallel(List<Participant> participants) {
+        // Form teams using threads
+        for (Participant participant : participants) {
+            Thread thread = new Thread(new TeamFormationTask(participant));  // Each team formation in a separate thread
+            thread.start();
+        }
+    }
+
+    // A Runnable class for forming teams
+    static class TeamFormationTask implements Runnable {
+        private final Participant participant;
+
+        public TeamFormationTask(Participant participant) {
+            this.participant = participant;
+        }
+
+        @Override
+        public void run() {
+            // Logic to form teams based on participant's attributes
+            System.out.println("Forming team for participant: " + participant.getName());
+
+            // Example: Simulate forming a team (you can add actual logic here)
+            try {
+                Thread.sleep(1000);  // Simulate time taken to form the team (replace with actual logic)
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            System.out.println("Team formed for participant: " + participant.getName());
+        }
+    }
 
     public TeamBuilder(List<Participant> participants, int teamSize) {
         this.participants = new ArrayList<>(participants);
