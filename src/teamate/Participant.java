@@ -51,7 +51,7 @@ public class Participant {
     }
 
     // Calculate the total score from the 5 questions (range: 5-25)
-    private int computeTotalFromQuestions() {
+    public int computeTotalFromQuestions() {
         int sum = 0;
         sum += (q1 != null ? q1 : 0);
         sum += (q2 != null ? q2 : 0);
@@ -69,7 +69,7 @@ public class Participant {
     }
 
     // Classify the personality based on the score
-    private String classifyPersonality(int score) {
+    public String classifyPersonality(int score) {
         if (score >= 90) return "Leader";
         if (score >= 70) return "Balanced";
         if (score >= 50) return "Thinker";
@@ -77,6 +77,8 @@ public class Participant {
     }
 
     // Getters and setters for the Participant class
+
+    // Getters
     public String getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }
@@ -85,6 +87,13 @@ public class Participant {
     public String getRole() { return role; }
     public int getPersonalityScore() { return personalityScore; }
     public String getPersonalityType() { return personalityType; }
+
+    // Setters
+    public void setName(String name) { this.name = name; }
+    public void setEmail(String email) { this.email = email; }
+    public void setInterest(String interest) { this.interest = interest; }
+    public void setRole(String role) { this.role = role; }
+    public void setSkillLevel(int skillLevel) { this.skillLevel = skillLevel; }
     public void setPersonalityType(String t) { this.personalityType = t; }
 
     // Method to output participant data for a team in CSV format
