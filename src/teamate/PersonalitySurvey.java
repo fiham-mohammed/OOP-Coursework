@@ -2,6 +2,7 @@ package teamate;
 
 import java.io.*;
 import java.util.Scanner;
+import java.util.regex.*;
 
 public class PersonalitySurvey extends Survey {
     private final Scanner sc = new Scanner(System.in);
@@ -10,16 +11,14 @@ public class PersonalitySurvey extends Survey {
     public Participant conductSurvey(String filePath) {
         System.out.println("\n=== New Personality Survey ===");
 
-        // Collect participant details
+        // Generate unique participant ID
         String id = generateNewParticipantId(filePath);
 
         System.out.println("Generated Participant ID: " + id);
 
-        System.out.print("Enter Name: ");
-        String name = sc.nextLine().trim();
-
-        System.out.print("Enter Email: ");
-        String email = sc.nextLine().trim();
+        // Collect participant details with validation
+        String name = getValidName();
+        String email = getValidEmail();
 
         // ---- Personality Questions (Rating 1 to 5) ----
         System.out.println("\nRate each question from 1 (Strongly Disagree) to 5 (Strongly Agree):");
@@ -54,8 +53,7 @@ public class PersonalitySurvey extends Survey {
         return newParticipant;
     }
 
-
-    // Helper method to ask integer questions
+    // Helper method to ask integer questions with validation for range
     private int askInt(String msg, int minValue, int maxValue) {
         int input = -1;  // Initialize with invalid value
 
@@ -77,6 +75,57 @@ public class PersonalitySurvey extends Survey {
         return input;  // Return the valid input
     }
 
+    // Helper method to validate if the input is a valid name (no numbers allowed)
+    private boolean isValidName(String name) {
+        return !name.matches(".*\\d.*");  // Checks if the name contains any digits
+    }
+
+    // Helper method to validate email format using regex
+    private boolean isValidEmail(String email) {
+        // Regex pattern for valid email format
+        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+        Pattern pattern = Pattern.compile(emailRegex);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }
+
+    // Method to get valid name input (no numeric values allowed)
+    private String getValidName() {
+        String name;
+        while (true) {
+            System.out.print("Enter Name: ");
+            name = sc.nextLine().trim();
+
+            // Check if the name contains only numbers
+            if (name.matches("\\d+")) {
+                System.out.println("Invalid name! Name should not be a pure number.");
+            }
+            // Check if the name is empty (optional validation)
+            else if (name.isEmpty()) {
+                System.out.println("Name cannot be empty. Please enter a valid name.");
+            }
+            else {
+                break; // Valid name, exit the loop
+            }
+        }
+        return name;
+    }
+
+    // Method to get valid email input
+    private String getValidEmail() {
+        String email;
+        while (true) {
+            System.out.print("Enter Email: ");
+            email = sc.nextLine().trim();
+            if (!isValidEmail(email)) {
+                System.out.println("Invalid email format! Please enter a valid email.");
+            } else {
+                break;
+            }
+        }
+        return email;
+    }
+
     // Helper method to ask for interest
     private String askInterest() {
         System.out.println("\nSelect your Interest:");
@@ -86,7 +135,7 @@ public class PersonalitySurvey extends Survey {
         System.out.println("4. Basketball");
         System.out.println("5. Badminton");
 
-        return switch (askInt("Enter number: ",1,5)) {
+        return switch (askInt("Enter number: ", 1, 5)) {
             case 1 -> "Valorant";
             case 2 -> "Dota";
             case 3 -> "FIFA";
@@ -105,7 +154,7 @@ public class PersonalitySurvey extends Survey {
         System.out.println("4. Supporter");
         System.out.println("5. Coordinator");
 
-        return switch (askInt("Enter number: ",1,5)) {
+        return switch (askInt("Enter number: ", 1, 5)) {
             case 1 -> "Defender";
             case 2 -> "Strategist";
             case 3 -> "Attacker";
@@ -133,6 +182,7 @@ public class PersonalitySurvey extends Survey {
             System.err.println("Error saving participant to CSV: " + e.getMessage());
         }
     }
+
     // Generate new Participant ID starting from the last ID in the CSV
     private String generateNewParticipantId(String filePath) {
         int lastParticipantId = getLastParticipantId(filePath);
@@ -169,4 +219,3 @@ public class PersonalitySurvey extends Survey {
         return lastId;
     }
 }
-

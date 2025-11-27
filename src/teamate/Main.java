@@ -285,7 +285,7 @@ public class Main {
     }
 
     private static void saveParticipantsToCSV(List<Participant> participants) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter("participants_sample.csv"))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("participants_sample1.csv"))) {
             for (Participant participant : participants) {
                 bw.write(participant.toCSVForParticipant());
                 bw.newLine();
