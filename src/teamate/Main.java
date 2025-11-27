@@ -23,9 +23,7 @@ public class Main {
         System.out.println("1. Organizer");
         System.out.println("2. Participant");
 
-        System.out.print("\nEnter option: ");
-        int userRole = Integer.parseInt(sc.nextLine().trim());
-
+        int userRole = readIntInput(sc, "\nEnter option: ", 1, 2);
         if (userRole == 1) {
             // Organizer Flow
             handleOrganizerFlow(sc, fm, participants, pc);
@@ -37,6 +35,30 @@ public class Main {
         }
     }
 
+    // Helper to safely read integer input within a range
+    private static int readIntInput(Scanner sc, String prompt, int min, int max) {
+        int result = -1;
+        while (true) {
+            System.out.print(prompt);
+            String line = sc.nextLine().trim();
+            if (line.isEmpty()) {
+                System.out.println("Input cannot be empty. Please enter a number.");
+                continue;
+            }
+            try {
+                result = Integer.parseInt(line);
+                if (result < min || result > max) {
+                    System.out.println("Invalid choice! Please enter a number between " + min + " and " + max + ".");
+                } else {
+                    break;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input! Please enter a valid number between " + min + " and " + max + ".");
+            }
+        }
+        return result;
+    }
+
     // Handle the organizer menu
     private static void handleOrganizerFlow(Scanner sc, FileManager fm, List<Participant> participants, PersonalityClassifier pc) {
         while (true) {
@@ -45,11 +67,11 @@ public class Main {
             System.out.println("2. View participants");
             System.out.println("3. Edit participant details");
             System.out.println("4. Form teams");
-            System.out.println("5. Save teams to CSV");
-            System.out.println("6. Exit");
+            System.out.println("5. View unassigned participants");
+            System.out.println("6. Save teams to CSV");
+            System.out.println("7. Exit");
 
-            System.out.print("\nEnter option: ");
-            int option = Integer.parseInt(sc.nextLine().trim());
+            int option = readIntInput(sc, "\nEnter option: ", 1, 7);
 
             if (option == 1) {
                 // Load participants from CSV (in parallel)
@@ -68,17 +90,19 @@ public class Main {
                 editParticipantDetails(sc, participants);
             } else if (option == 4) {
                 // Form teams from participants concurrently
-                System.out.println("Enter desired team size:");
-                int teamSize = Integer.parseInt(sc.nextLine().trim());
+                int teamSize = readIntInput(sc, "Enter desired team size: ", 1, 100);
                 formTeamsAndDisplay(sc, participants, teamSize);
             } else if (option == 5) {
+                // View unassigned participants
+                viewUnassignedParticipants();
+            } else if (option == 6) {
                 // Save teams to CSV
                 System.out.println("Enter output CSV filename to save teams:");
                 String out = sc.nextLine().trim();
                 if (!out.isEmpty()) {
                     saveTeamsToCSV(fm, out, participants);
                 }
-            } else if (option == 6) {
+            } else if (option == 7) {
                 // Exit the program
                 System.out.println("Exiting...");
                 break;
@@ -331,6 +355,9 @@ public class Main {
 
     // Form teams and display them concurrently
     private static void formTeamsAndDisplay(Scanner sc, List<Participant> participants, int teamSize) {
+        // List to track unassigned participants
+        List<Participant> unassignedParticipants = new ArrayList<>();
+
         // Use a thread pool for concurrent team formation
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         TeamBuilder builder = new TeamBuilder(participants, teamSize);
@@ -343,6 +370,20 @@ public class Main {
             for (Team t : newTeams) {
                 System.out.println(t);
             }
+
+            // Collect unassigned participants (those who couldn't be added to teams)
+            for (Participant p : participants) {
+                boolean assigned = false;
+                for (Team team : newTeams) {
+                    if (team.getMembers().contains(p)) {
+                        assigned = true;
+                        break;
+                    }
+                }
+                if (!assigned) {
+                    unassignedParticipants.add(p);
+                }
+            }
         });
 
         executorService.shutdown();
@@ -351,7 +392,30 @@ public class Main {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+
+        // Set the unassigned participants as a global variable or store in another method
+        setUnassignedParticipants(unassignedParticipants);
     }
+
+    private static void viewUnassignedParticipants() {
+        if (unassignedParticipants.isEmpty()) {
+            System.out.println("[INFO] No unassigned participants.");
+        } else {
+            System.out.println("\n=== Unassigned Participants ===");
+            for (Participant p : unassignedParticipants) {
+                System.out.println(p.toString());
+            }
+        }
+    }
+    // Global list to hold unassigned participants
+    private static List<Participant> unassignedParticipants = new ArrayList<>();
+
+    // Setter method to set the unassigned participants (from the above method)
+    private static void setUnassignedParticipants(List<Participant> unassigned) {
+        unassignedParticipants = unassigned;
+    }
+
+
 
     // Save teams to CSV
     private static void saveTeamsToCSV(FileManager fm, String out, List<Participant> participants) {

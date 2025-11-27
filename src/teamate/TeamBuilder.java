@@ -23,6 +23,7 @@ public class TeamBuilder {
         }
     }
 
+
     // A Runnable class for forming teams
     static class TeamFormationTask implements Runnable {
         private final Participant participant;
@@ -52,37 +53,58 @@ public class TeamBuilder {
         this.teamSize = Math.max(1, teamSize);
     }
 
+    private List<Participant> unassignedParticipants = new ArrayList<>();
     public List<Team> formTeams() {
         List<Team> teams = new ArrayList<>();
-        if (participants.isEmpty()) return teams;
+        List<Participant> unassignedParticipants = new ArrayList<>();
 
-        int expectedTeams = (participants.size() + teamSize - 1) / teamSize;
-        for (int i = 1; i <= expectedTeams; i++) teams.add(new Team(i));
+        int totalParticipants = participants.size();
+        int fullTeamsCount = totalParticipants / teamSize;  // Number of full teams
+        int leftoverParticipants = totalParticipants % teamSize;  // Number of leftover participants
 
-        Collections.shuffle(participants, new Random(System.currentTimeMillis()));
-
-        // Greedy assignment optimizing diversity
-        for (Participant p : participants) {
-            Team best = null;
-            int bestScore = Integer.MIN_VALUE;
-            for (Team t : teams) {
-                if (t.size() >= teamSize) continue;
-                int score = evaluateFit(t, p);
-                if (score > bestScore) { bestScore = score; best = t; }
-            }
-            if (best == null) {
-                best = new Team(teams.size() + 1);
-                teams.add(best);
-            }
-            best.addMember(p);
+        // Create full teams
+        for (int i = 0; i < fullTeamsCount; i++) {
+            teams.add(new Team(i + 1));  // Create full teams
         }
 
-        // Post-process to try to ensure required roles in each team
-        enforceRequiredRoles(teams);
+        // Assign participants to full teams first
+        int index = 0;
+        for (Participant p : participants) {
+            if (index < fullTeamsCount * teamSize) {
+                // Assign participant to a full team
+                Team team = teams.get(index / teamSize);  // Find the appropriate team
+                team.addMember(p);
+                index++;
+            } else {
+                // If participant can't be assigned to a team, add to unassigned list
+                unassignedParticipants.add(p);
+            }
+        }
 
-        teams.removeIf(t -> t.size() == 0);
+        // If there are leftover participants, only create a team if enough participants exist
+        if (leftoverParticipants >= teamSize) {
+            Team lastTeam = new Team(teams.size() + 1);
+            for (int i = 0; i < leftoverParticipants; i++) {
+                lastTeam.addMember(participants.get(fullTeamsCount * teamSize + i));
+            }
+            teams.add(lastTeam);
+        } else {
+            // Add all remaining participants to the unassigned list if they can't form a full team
+            for (int i = fullTeamsCount * teamSize; i < participants.size(); i++) {
+                unassignedParticipants.add(participants.get(i));
+            }
+        }
+
+        // Set unassigned participants (this list can be used to display unassigned participants)
+        setUnassignedParticipants(unassignedParticipants);
+
         return teams;
     }
+    private void setUnassignedParticipants(List<Participant> unassignedParticipants) {
+        // Defensive copy for safety
+        this.unassignedParticipants = new ArrayList<>(unassignedParticipants);
+    }
+
 
     private int evaluateFit(Team t, Participant p) {
         int score = 0;
@@ -131,4 +153,5 @@ public class TeamBuilder {
             }
         }
     }
+
 }
