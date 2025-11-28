@@ -1,5 +1,7 @@
 package teamate;
 
+import java.util.Objects;
+
 /**
  * Participant data model.
  * Supports Q1..Q5 optional fields OR a direct PersonalityScore field.
@@ -118,5 +120,62 @@ public class Participant {
                 role,                           // Participant's role
                 personalityScore,               // Personality score (scaled)
                 personalityType);               // Personality type (Leader, Balanced, Thinker)
+    }
+    /**
+     * Check if participant data is valid for team formation
+     */
+    public boolean isValid() {
+        return id != null && !id.isEmpty() &&
+                name != null && !name.isEmpty() &&
+                email != null && !email.isEmpty() &&
+                interest != null && !interest.isEmpty() &&
+                role != null && !role.isEmpty() &&
+                skillLevel >= 1 && skillLevel <= 10 &&
+                personalityScore >= 0 && personalityScore <= 100 &&
+                personalityType != null && !personalityType.isEmpty();
+    }
+
+    /**
+     * Check if participant is eligible for team formation
+     */
+    public boolean isEligibleForTeams() {
+        return isValid() &&
+                !"Undefined".equals(personalityType) &&
+                !"Invalid".equals(personalityType);
+    }
+
+    // Add equals and hashCode methods for proper collection handling
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Participant that = (Participant) o;
+        return Objects.equals(id, that.id) && Objects.equals(email, that.email);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, email);
+    }
+
+    public void setPersonalityScore(int i) {
+    }
+
+    public Integer getQ1() {
+        return 0;
+    }
+
+    public Integer getQ2() {
+        return 0;
+    }
+
+    public Integer getQ3() {
+        return null;
+    }
+    public Integer getQ4() {
+        return null;
+    }
+    public Integer getQ5() {
+        return null;
     }
 }
