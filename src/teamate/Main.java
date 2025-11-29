@@ -8,6 +8,7 @@ import java.util.concurrent.*;
 
 public class Main {
     private static final ErrorHandler EH = new ErrorHandler();
+    private static final Logger logger = Logger.getInstance();
     private static final String DEFAULT_INPUT = "C:/Users/User/Downloads/New folder/teamate_coursework_full/participants_sample.csv";
     private static List<Team> teams = new ArrayList<>();
     private static List<Participant> participants = Collections.synchronizedList(new ArrayList<>());
@@ -19,26 +20,40 @@ public class Main {
     private static Integer teamSize = null;
 
     public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        FileManager fm = new FileManager();
-        PersonalityClassifier pc = new PersonalityClassifier();
-        SurveyManager surveyManager = new SurveyManager();
+        logger.info("TeamMate System starting...");
 
-        System.out.println("=== TeamMate System ===");
-        System.out.println("Are you a:");
-        System.out.println("1. Organizer");
-        System.out.println("2. Participant");
+        try {
+            Scanner sc = new Scanner(System.in);
+            FileManager fm = new FileManager();
+            PersonalityClassifier pc = new PersonalityClassifier();
+            SurveyManager surveyManager = new SurveyManager();
 
-        int userRole = readIntInput(sc, "\nEnter option: ", 1, 2);
-        if (userRole == 1) {
-            // Organizer Flow - using EnhancedTeamBuilder for better matching
-            TeamBuilder teamBuilder = new TeamBuilder(participants, 4); // default size
-            handleOrganizerFlow(sc, fm, participants, pc, teamBuilder);
-        } else if (userRole == 2) {
-            // Participant Flow (Start survey)
-            handleParticipantSurvey(surveyManager, participants, sc);
-        } else {
-            System.out.println("Invalid option. Exiting.");
+            logger.debug("Initialized core components");
+
+            System.out.println("=== TeamMate System ===");
+            System.out.println("Are you a:");
+            System.out.println("1. Organizer");
+            System.out.println("2. Participant");
+
+            int userRole = readIntInput(sc, "\nEnter option: ", 1, 2);
+            logger.info("User selected role: " + (userRole == 1 ? "Organizer" : "Participant"));
+
+            if (userRole == 1) {
+                // Organizer Flow - using EnhancedTeamBuilder for better matching
+                TeamBuilder teamBuilder = new TeamBuilder(participants, 4); // default size
+                handleOrganizerFlow(sc, fm, participants, pc, teamBuilder);
+            } else if (userRole == 2) {
+                // Participant Flow (Start survey)
+                handleParticipantSurvey(surveyManager, participants, sc);
+            } else {
+                logger.warn("Invalid user role selected: " + userRole);
+                System.out.println("Invalid option. Exiting.");
+            }
+
+            logger.info("TeamMate System shutting down normally");
+        } catch (Exception e) {
+            logger.error("Fatal error in main method", e);
+            EH.showError("System encountered a fatal error: " + e.getMessage());
         }
     }
 
@@ -69,6 +84,8 @@ public class Main {
     // Enhanced Organizer Flow with better team formation
     private static void handleOrganizerFlow(Scanner sc, FileManager fm, List<Participant> participants,
                                             PersonalityClassifier pc, TeamBuilder teamBuilder) {
+        logger.info("Organizer flow started");
+
         while (true) {
             System.out.println("\n=== Organizer Menu ===");
             System.out.println("1. Load participants from CSV");
@@ -85,45 +102,49 @@ public class Main {
 
             switch (option) {
                 case 1:
-                    // Load participants from CSV (in parallel)
+                    logger.debug("Organizer selected: Load participants from CSV");
                     System.out.println("Enter path to participants CSV (Enter = default):");
                     String inputPath = sc.nextLine().trim();
                     if (inputPath.isEmpty()) {
                         inputPath = DEFAULT_INPUT;
-                        System.out.println("Using default: " + inputPath);
+                        logger.info("Using default CSV path: " + inputPath);
+                    } else {
+                        logger.info("Using custom CSV path: " + inputPath);
                     }
                     loadParticipantsFromCSV(fm, inputPath, participants, pc);
                     break;
                 case 2:
-                    // View participants
+                    logger.debug("Organizer selected: View participants");
                     viewParticipants(participants);
                     break;
                 case 3:
-                    // Edit participant details
+                    logger.debug("Organizer selected: Edit participant details");
                     editParticipantDetails(sc, participants);
                     break;
                 case 4:
-                    // Set team size
+                    logger.debug("Organizer selected: Set team size");
                     setTeamSize(sc);
                     break;
                 case 5:
-                    // Form teams from participants with enhanced algorithm
+                    logger.debug("Organizer selected: Form balanced teams");
                     if (teamSize == null) {
+                        logger.warn("Team formation attempted without setting team size");
                         System.out.println("Please set team size first (Option 4).");
                         break;
                     }
+                    logger.info("Starting enhanced team formation with size: " + teamSize);
                     formEnhancedTeams(participants, teamSize);
                     break;
                 case 6:
-                    // View all teams
+                    logger.debug("Organizer selected: View all teams");
                     viewAllTeams();
                     break;
                 case 7:
-                    // View unassigned participants
+                    logger.debug("Organizer selected: View unassigned participants");
                     viewUnassignedParticipants();
                     break;
                 case 8:
-                    // Save teams to CSV
+                    logger.debug("Organizer selected: Save teams to CSV");
                     System.out.println("Enter output CSV filename to save teams:");
                     String out = sc.nextLine().trim();
                     if (!out.isEmpty()) {
@@ -131,7 +152,7 @@ public class Main {
                     }
                     break;
                 case 9:
-                    // Exit the program
+                    logger.info("Organizer exiting application");
                     System.out.println("Exiting...");
                     return;
             }
@@ -140,13 +161,22 @@ public class Main {
 
     // Enhanced team formation with proper matching strategy
     private static void formEnhancedTeams(List<Participant> participants, int teamSize) {
+        logger.debug("Starting enhanced team formation process");
+
         if (participants.isEmpty()) {
+            logger.warn("Team formation attempted with empty participant list");
             System.out.println("No participants loaded. Please load participants first.");
             return;
         }
 
         try {
-            System.out.println("🔄 Forming balanced teams with enhanced algorithm...");
+            logger.info("Forming balanced teams for " + participants.size() + " participants");
+
+            // Log participant statistics
+            long validParticipants = participants.stream().filter(Participant::isValid).count();
+            long eligibleParticipants = participants.stream().filter(Participant::isEligibleForTeams).count();
+            logger.debug(String.format("Participant stats - Total: %d, Valid: %d, Eligible: %d",
+                    participants.size(), validParticipants, eligibleParticipants));
 
             // Ensure all participants have proper personality classification
             for (Participant p : participants) {
@@ -170,6 +200,11 @@ public class Main {
             teams.addAll(wellBalancedTeams);
             teams.addAll(secondaryTeams);
 
+            logger.info(String.format(
+                    "Team formation completed - Well-balanced: %d, Secondary: %d, Unassigned: %d",
+                    wellBalancedTeams.size(), secondaryTeams.size(), unassignedParticipants.size()
+            ));
+
             System.out.println("\n🎉 Enhanced Team Formation Completed!");
             System.out.println("Well-Balanced Teams: " + wellBalancedTeams.size());
             System.out.println("Secondary Teams: " + secondaryTeams.size());
@@ -177,6 +212,7 @@ public class Main {
             System.out.println("Total Teams Formed: " + teams.size());
 
         } catch (Exception e) {
+            logger.error("Team formation failed", e);
             System.out.println("❌ Error during team formation: " + e.getMessage());
             e.printStackTrace();
         }
@@ -188,12 +224,15 @@ public class Main {
         try {
             int size = Integer.parseInt(sc.nextLine().trim());
             if (size <= 1) {
+                logger.warn("Invalid team size attempted: " + size);
                 System.out.println("❌ Team size must be greater than 1.");
                 return;
             }
             teamSize = size;
+            logger.info("Team size set to: " + size);
             System.out.println("✅ Team size set to: " + size);
         } catch (NumberFormatException e) {
+            logger.error("Invalid team size input format", e);
             System.out.println("❌ Invalid number format.");
         }
     }
@@ -201,10 +240,12 @@ public class Main {
     // View all teams (enhanced)
     private static void viewAllTeams() {
         if (teams.isEmpty()) {
+            logger.debug("View teams requested but no teams formed");
             System.out.println("No teams formed yet. Run team formation first.");
             return;
         }
 
+        logger.debug("Displaying all formed teams");
         System.out.println("\n=== ALL FORMED TEAMS ===");
 
         if (!wellBalancedTeams.isEmpty()) {
@@ -235,35 +276,46 @@ public class Main {
     // Save all teams to CSV (enhanced)
     private static void saveAllTeamsToCSV(FileManager fm, String filename) {
         try {
+            logger.info("Saving teams to CSV: " + filename);
             fm.writeTeamsToCSV(filename, teams);
             EH.showInfo("All teams saved to: " + filename);
 
             // Also show unassigned count
             if (!unassignedParticipants.isEmpty()) {
+                logger.debug("Unassigned participants count: " + unassignedParticipants.size());
                 System.out.println("Note: " + unassignedParticipants.size() + " participants were not assigned to teams.");
             }
         } catch (IOException e) {
+            logger.error("Failed to save teams to CSV: " + filename, e);
             EH.showError("Failed to save teams: " + e.getMessage());
         }
     }
 
-    // ========== KEEP YOUR EXISTING METHODS BELOW ==========
+    // ========== EXISTING METHODS WITH LOGGING ==========
 
     // Handle participant survey flow
     private static void handleParticipantSurvey(SurveyManager surveyManager, List<Participant> participants, Scanner sc) {
+        logger.info("Starting participant survey flow");
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.submit(() -> {
-            Participant newParticipant = surveyManager.conductSurvey(DEFAULT_INPUT);
-            synchronized(participants) {
-                participants.add(newParticipant);
+            try {
+                Participant newParticipant = surveyManager.conductSurvey(DEFAULT_INPUT);
+                synchronized(participants) {
+                    participants.add(newParticipant);
+                }
+                logger.info("New participant added successfully: " + newParticipant.getId());
+                System.out.println("[INFO] Participant added successfully (processed in parallel)");
+            } catch (Exception e) {
+                logger.error("Error during participant survey", e);
             }
-            System.out.println("[INFO] Participant added successfully (processed in parallel)");
         });
         executor.shutdown();
     }
 
     // Method to edit participant details
     private static void editParticipantDetails(Scanner sc, List<Participant> participants) {
+        logger.debug("Starting participant edit process");
+
         // Validate Participant ID
         Participant participantToEdit = null;
         while (participantToEdit == null) {
@@ -279,9 +331,12 @@ public class Main {
             }
 
             if (participantToEdit == null) {
+                logger.warn("Invalid participant ID entered: " + participantId);
                 System.out.println("Invalid ID! Please enter a valid participant ID.");
             }
         }
+
+        logger.debug("Editing participant: " + participantToEdit.getId());
 
         // Display current details of the participant
         System.out.println("\nCurrent details of participant " + participantToEdit.getName() + ":");
@@ -296,6 +351,7 @@ public class Main {
         String newName = sc.nextLine().trim();
         if (!newName.isEmpty()) {
             participantToEdit.setName(newName);
+            logger.debug("Updated name for participant: " + participantToEdit.getId());
         }
 
         // Enter new email
@@ -303,24 +359,28 @@ public class Main {
         String newEmail = sc.nextLine().trim();
         if (!newEmail.isEmpty()) {
             participantToEdit.setEmail(newEmail);
+            logger.debug("Updated email for participant: " + participantToEdit.getId());
         }
 
         // Select new interest with validation
         String newInterest = selectInterest(sc);
         if (!newInterest.isEmpty()) {
             participantToEdit.setInterest(newInterest);
+            logger.debug("Updated interest for participant: " + participantToEdit.getId());
         }
 
         // Select new role with validation
         String newRole = selectRole(sc);
         if (!newRole.isEmpty()) {
             participantToEdit.setRole(newRole);
+            logger.debug("Updated role for participant: " + participantToEdit.getId());
         }
 
         // Enter new skill level with validation
         int newSkillLevel = selectSkillLevel(sc);
         if (newSkillLevel != -1) {
             participantToEdit.setSkillLevel(newSkillLevel);
+            logger.debug("Updated skill level for participant: " + participantToEdit.getId());
         }
 
         // Recalculate personality type based on updated values
@@ -330,6 +390,7 @@ public class Main {
 
         // Save updated participant data back to CSV
         saveParticipantsToCSV(participants);
+        logger.info("Participant details updated successfully: " + participantToEdit.getId());
         System.out.println("Participant details updated successfully.");
     }
 
@@ -423,24 +484,28 @@ public class Main {
                 bw.write(participant.toCSVForParticipant());
                 bw.newLine();
             }
+            logger.info("Participants saved to CSV, count: " + participants.size());
             System.out.println("Participants saved to CSV.");
         } catch (IOException e) {
+            logger.error("Error saving participants to CSV", e);
             System.err.println("Error saving participants to CSV: " + e.getMessage());
         }
     }
 
     // Load participants from CSV (with concurrency for parallel loading)
     private static void loadParticipantsFromCSV(FileManager fm, String inputPath, List<Participant> participants, PersonalityClassifier pc) {
+        logger.info("Loading participants from CSV: " + inputPath);
         ExecutorService executorService = Executors.newFixedThreadPool(10);
 
         try {
             List<Participant> loaded = fm.readParticipantsFromCSV(inputPath);
             if (loaded.isEmpty()) {
+                logger.warn("CSV file loaded but no participants found: " + inputPath);
                 EH.showError("No participants loaded. Check CSV.");
                 return;
             }
 
-            // Clear existing participants
+            logger.debug("Raw CSV load completed, found " + loaded.size() + " entries");
             participants.clear();
 
             // Submit tasks for each participant to process them concurrently
@@ -449,10 +514,21 @@ public class Main {
             }
 
             executorService.shutdown();
-            executorService.awaitTermination(60, TimeUnit.SECONDS);
+            boolean terminated = executorService.awaitTermination(60, TimeUnit.SECONDS);
+
+            if (!terminated) {
+                logger.warn("Participant loading timeout - forcing shutdown");
+                executorService.shutdownNow();
+            }
+
+            logger.info("Successfully loaded and processed " + participants.size() + " participants");
             EH.showInfo("Loaded and classified " + participants.size() + " participants.");
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
+            logger.error("Failed to load CSV file: " + inputPath, e);
             EH.showError("Failed to load CSV: " + e.getMessage());
+        } catch (InterruptedException e) {
+            logger.error("Participant loading interrupted", e);
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -461,6 +537,7 @@ public class Main {
         private final Participant participant;
         private final List<Participant> participants;
         private final PersonalityClassifier pc;
+        private final Logger logger = Logger.getInstance();
 
         public LoadParticipantTask(Participant participant, List<Participant> participants, PersonalityClassifier pc) {
             this.participant = participant;
@@ -470,18 +547,24 @@ public class Main {
 
         @Override
         public void run() {
-            int score = participant.getPersonalityScore();
-            if (score < 0) score = 0;
-            if (score > 100) score = 100;
-            participant.setPersonalityType(pc.classify(score));
-            synchronized (participants) {
-                participants.add(participant);
+            try {
+                int score = participant.getPersonalityScore();
+                if (score < 0) score = 0;
+                if (score > 100) score = 100;
+                participant.setPersonalityType(pc.classify(score));
+                synchronized (participants) {
+                    participants.add(participant);
+                }
+                logger.debug("Processed participant: " + participant.getId());
+            } catch (Exception e) {
+                logger.error("Error processing participant: " + participant.getId(), e);
             }
         }
     }
 
     // View all participants
     private static void viewParticipants(List<Participant> participants) {
+        logger.debug("Viewing all participants, count: " + participants.size());
         System.out.println("\n=== Participants ===");
         for (Participant p : participants) {
             System.out.println(p.toString());
@@ -491,8 +574,10 @@ public class Main {
     // View unassigned participants
     private static void viewUnassignedParticipants() {
         if (unassignedParticipants.isEmpty()) {
+            logger.debug("No unassigned participants to display");
             System.out.println("[INFO] No unassigned participants.");
         } else {
+            logger.debug("Viewing unassigned participants, count: " + unassignedParticipants.size());
             System.out.println("\n=== Unassigned Participants ===");
             for (Participant p : unassignedParticipants) {
                 System.out.println(p.toString());

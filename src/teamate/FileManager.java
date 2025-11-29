@@ -9,18 +9,31 @@ import java.util.*;
  * Supports either Q1..Q5 columns OR a PersonalityScore column.
  */
 public class FileManager {
-
+    private final Logger logger = Logger.getInstance();
     private String personalityType;
 
     // Reads participants from the given CSV path
     public List<Participant> readParticipantsFromCSV(String path) throws IOException {
+        logger.debug("Reading participants from CSV: " + path);
+
         Path p = Paths.get(path);
-        if (!Files.exists(p)) throw new FileNotFoundException("CSV file not found: " + path);
+        if (!Files.exists(p)) {
+            logger.error("CSV file not found: " + path);
+            throw new FileNotFoundException("CSV file not found: " + path);
+        }
 
         List<Participant> list = new ArrayList<>();
+        int lineCount = 0;
+        int successCount = 0;
+
         try (BufferedReader br = Files.newBufferedReader(p)) {
             String header = br.readLine();
-            if (header == null) return list;
+            if (header == null) {
+                logger.warn("CSV file is empty: " + path);
+                return list;
+            }
+
+            logger.debug("CSV header: " + header);
             String[] cols = header.split(",", -1);
             Map<String, Integer> idx = new HashMap<>();
             for (int i = 0; i < cols.length; i++) idx.put(cols[i].trim().toLowerCase(), i);
@@ -29,6 +42,7 @@ public class FileManager {
             int ln = 1;
             while ((line = br.readLine()) != null) {
                 ln++;
+                lineCount++;
                 if (line.trim().isEmpty()) continue;
                 String[] tokens = line.split(",", -1);
                 try {
@@ -54,14 +68,18 @@ public class FileManager {
                     // Validate personality score range (0-100)
                     int ps = pObj.getPersonalityScore();
                     if (ps < 0 || ps > 100) {
-                        System.err.println("Warning: personality score out of range at line " + ln + ", clamped.");
+                        logger.warn("Personality score out of range at line " + ln + ": " + ps);
                     }
                     list.add(pObj);
+                    successCount++;
                 } catch (Exception ex) {
-                    System.err.println("Warning: skipping invalid line " + ln + " : " + ex.getMessage());
+                    logger.warn("Skipping invalid line " + ln + ": " + ex.getMessage());
                 }
             }
         }
+
+        logger.info(String.format("CSV parsing completed - Lines: %d, Success: %d, Failed: %d",
+                lineCount, successCount, lineCount - successCount));
         return list;
     }
 
@@ -91,21 +109,33 @@ public class FileManager {
     }
 
     public void writeTeamsToCSV(String path, List<Team> teams) throws IOException {
+        logger.info("Writing " + teams.size() + " teams to CSV: " + path);
+
         Path p = Paths.get(path);
         try (BufferedWriter bw = Files.newBufferedWriter(p)) {
             bw.write("teamID,id,name,skillLevel,interest,role,personalityScore,personalityType\n");
             // Iterate through each team
+            int participantCount = 0;
             for (Team t : teams) {
                 // Iterate through each participant in the current team
                 for (Participant participant : t.getMembers()) {  // Renamed variable 'p' to 'participant'
                     bw.write(participant.toCSVForTeam(t.getTeamID()) + "\n");
+                    participantCount++;
                 }
             }
+
+            logger.debug(String.format("Team CSV written - Teams: %d, Participants: %d",
+                    teams.size(), participantCount));
+        } catch (IOException e) {
+            logger.error("Failed to write teams to CSV: " + path, e);
+            throw e;
         }
     }
 
     // Helper method to form teams (uses the Participant data)
     public List<Team> formTeams(List<Participant> participants, int teamSize) {
+        logger.debug("Forming basic teams for " + participants.size() + " participants, team size: " + teamSize);
+
         List<Team> teams = new ArrayList<>();
         int teamID = 1; // Initialize team IDs
 
@@ -130,6 +160,7 @@ public class FileManager {
             }
         }
 
+        logger.debug("Basic team formation completed - Teams: " + teams.size());
         return teams;  // Return the formed teams
     }
 }

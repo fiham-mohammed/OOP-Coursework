@@ -6,15 +6,19 @@ import java.util.regex.*;
 
 public class PersonalitySurvey extends Survey {
     private final Scanner sc = new Scanner(System.in);
+    private final Logger logger = Logger.getInstance();
 
     @Override
     public Participant conductSurvey(String filePath) {
+        logger.info("Starting new personality survey");
+
         System.out.println("\n=== New Personality Survey ===");
 
         // Generate unique participant ID
         String id = generateNewParticipantId(filePath);
 
         System.out.println("Generated Participant ID: " + id);
+        logger.debug("Generated participant ID: " + id);
 
         // Collect participant details with validation
         String name = getValidName();
@@ -27,6 +31,8 @@ public class PersonalitySurvey extends Survey {
         int q3 = askInt("Q3: I work well with others and enjoy collaborative teamwork.", 1, 5);
         int q4 = askInt("Q4: I am calm under pressure and can help maintain team morale.", 1, 5);
         int q5 = askInt("Q5: I like making quick decisions and adapting in dynamic situations.", 1, 5);
+
+        logger.debug("Survey responses - Q1:" + q1 + " Q2:" + q2 + " Q3:" + q3 + " Q4:" + q4 + " Q5:" + q5);
 
         // ---- Calculate total score and scale to 100 ----
         int totalScore = q1 + q2 + q3 + q4 + q5;
@@ -50,6 +56,7 @@ public class PersonalitySurvey extends Survey {
         // Save new participant to the CSV file
         saveParticipantToCSV(newParticipant, filePath);
 
+        logger.info("Survey completed for participant: " + id + " - " + name + " (" + personalityType + ")");
         return newParticipant;
     }
 
@@ -178,7 +185,9 @@ public class PersonalitySurvey extends Survey {
             // Write new participant data as CSV (without header)
             bw.write(newParticipant.toCSVForParticipant());  // Correct CSV format for participant
             bw.newLine(); // Move to the next line
+            logger.debug("Participant saved to CSV: " + newParticipant.getId());
         } catch (IOException e) {
+            logger.error("Failed to save participant to CSV: " + newParticipant.getId(), e);
             System.err.println("Error saving participant to CSV: " + e.getMessage());
         }
     }
@@ -208,14 +217,16 @@ public class PersonalitySurvey extends Survey {
                         lastId = numericId;  // Update lastId with the numeric ID
                     } catch (NumberFormatException e) {
                         // Skip invalid IDs or log the error
-                        System.out.println("Invalid ID format found: " + participantId);
+                        logger.warn("Invalid ID format found: " + participantId);
                     }
                 }
             }
         } catch (IOException e) {
+            logger.error("Error reading participant IDs from CSV", e);
             e.printStackTrace();
         }
 
+        logger.debug("Last participant ID found: " + lastId);
         return lastId;
     }
 }

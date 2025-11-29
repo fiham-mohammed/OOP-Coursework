@@ -162,20 +162,20 @@ public class Participant {
     }
 
     public Integer getQ1() {
-        return 0;
+        return this.q1;
     }
 
     public Integer getQ2() {
-        return 0;
+        return this.q2;
     }
 
     public Integer getQ3() {
-        return null;
+        return this.q3;
     }
     public Integer getQ4() {
-        return null;
+        return this.q4;
     }
     public Integer getQ5() {
-        return null;
+        return this.q5;
     }
 }

@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public class TeamBuilder {
     private final List<Participant> participants;
     private final int teamSize;
+    private final Logger logger = Logger.getInstance();
 
     // Balance constraints from requirements
     private static final int MAX_PER_GAME = 2;
@@ -22,6 +23,7 @@ public class TeamBuilder {
                 participants.stream().map(p -> createCopy(p)).collect(Collectors.toList()) :
                 new ArrayList<>();
         this.teamSize = Math.max(1, teamSize);
+        logger.debug("TeamBuilder initialized with " + this.participants.size() + " participants, team size: " + teamSize);
     }
 
     /**
@@ -41,14 +43,20 @@ public class TeamBuilder {
      * WITHOUT duplicate participants
      */
     public Map<String, Object> formAllTeams() {
+        logger.info("Starting team formation for " + participants.size() + " participants, team size: " + teamSize);
+
         Map<String, Object> result = new HashMap<>();
 
         if (participants.isEmpty()) {
+            logger.warn("Team formation attempted with empty participant list");
             result.put("wellBalanced", new ArrayList<Team>());
             result.put("secondary", new ArrayList<Team>());
             result.put("leftover", new ArrayList<Participant>());
             return result;
         }
+
+        // Log initial participant statistics
+        logParticipantStatistics();
 
         // Create working copies to avoid modifying original data
         List<Participant> availableParticipants = new ArrayList<>(this.participants);
@@ -71,13 +79,31 @@ public class TeamBuilder {
         // VALIDATION: Ensure no duplicates
         validateNoDuplicates(wellBalanced, secondaryTeams);
 
+        logger.info(String.format(
+                "Team formation completed - Well-balanced: %d, Secondary: %d, Leftover: %d",
+                wellBalanced.size(), secondaryTeams.size(), finalLeftover.size()
+        ));
+
         return result;
+    }
+
+    private void logParticipantStatistics() {
+        long leaders = participants.stream().filter(p -> "Leader".equals(p.getPersonalityType())).count();
+        long thinkers = participants.stream().filter(p -> "Thinker".equals(p.getPersonalityType())).count();
+        long balanced = participants.stream().filter(p -> "Balanced".equals(p.getPersonalityType())).count();
+        long undefined = participants.stream().filter(p -> "Undefined".equals(p.getPersonalityType())).count();
+
+        logger.debug(String.format(
+                "Participant distribution - Leaders: %d, Thinkers: %d, Balanced: %d, Undefined: %d",
+                leaders, thinkers, balanced, undefined
+        ));
     }
 
     /**
      * Forms well-balanced teams with strict diversity rules
      */
     private Map<String, Object> formWellBalancedTeams(List<Participant> availableParticipants) {
+        logger.debug("Forming well-balanced teams");
         Map<String, Object> result = new HashMap<>();
         List<Team> teams = new ArrayList<>();
 
@@ -87,10 +113,13 @@ public class TeamBuilder {
                 .collect(Collectors.toList());
 
         if (validParticipants.isEmpty()) {
+            logger.warn("No valid participants available for well-balanced teams");
             result.put("teams", teams);
             result.put("leftover", new ArrayList<>(availableParticipants));
             return result;
         }
+
+        logger.debug("Valid participants for well-balanced teams: " + validParticipants.size());
 
         // Create a working pool that we'll remove from
         List<Participant> workingPool = new ArrayList<>(validParticipants);
@@ -113,10 +142,13 @@ public class TeamBuilder {
         }
 
         if (teams.isEmpty()) {
+            logger.warn("No teams could be formed due to insufficient participants");
             result.put("teams", teams);
             result.put("leftover", workingPool);
             return result;
         }
+
+        logger.debug("Attempting to form " + maxTeams + " well-balanced teams");
 
         // PHASE 1: Assign leaders (1 per team)
         for (int i = 0; i < Math.min(leaders.size(), teams.size()); i++) {
@@ -124,6 +156,7 @@ public class TeamBuilder {
             teams.get(i).addMember(leader);
             workingPool.remove(leader); // REMOVE from available pool
         }
+        logger.debug("Assigned " + Math.min(leaders.size(), teams.size()) + " leaders");
 
         // PHASE 2: Assign thinkers (1-2 per team)
         for (Team team : teams) {
@@ -137,6 +170,7 @@ public class TeamBuilder {
                 }
             }
         }
+        logger.debug("Assigned thinkers to teams");
 
         // PHASE 3: Fill with balanced participants
         List<Participant> balancedCopy = new ArrayList<>(balanced);
@@ -149,6 +183,7 @@ public class TeamBuilder {
                 workingPool.remove(p); // REMOVE from available pool
             }
         }
+        logger.debug("Filled teams with balanced participants");
 
         // Remove incomplete teams and return their members to the pool
         List<Team> completeTeams = new ArrayList<>();
@@ -162,6 +197,7 @@ public class TeamBuilder {
             }
         }
 
+        logger.debug("Well-balanced team formation completed - Complete teams: " + completeTeams.size());
         result.put("teams", completeTeams);
         result.put("leftover", workingPool);
         return result;
@@ -171,6 +207,7 @@ public class TeamBuilder {
      * Forms secondary teams from leftover participants
      */
     private List<Team> formSecondaryTeams(List<Participant> leftover) {
+        logger.debug("Forming secondary teams from " + leftover.size() + " leftover participants");
         List<Team> secondaryTeams = new ArrayList<>();
         List<Participant> temp = new ArrayList<>(leftover);
         Collections.shuffle(temp);
@@ -186,6 +223,7 @@ public class TeamBuilder {
             temp.subList(0, teamSize).clear(); // REMOVE assigned participants
         }
 
+        logger.debug("Secondary teams formed: " + secondaryTeams.size());
         return secondaryTeams;
     }
 
@@ -202,9 +240,12 @@ public class TeamBuilder {
         secondary.forEach(team -> allAssigned.addAll(team.getMembers()));
 
         // Return participants not in any team
-        return originalPool.stream()
+        List<Participant> unassigned = originalPool.stream()
                 .filter(p -> !allAssigned.contains(p))
                 .collect(Collectors.toList());
+
+        logger.debug("Unassigned participants: " + unassigned.size());
+        return unassigned;
     }
 
     /**
@@ -218,7 +259,7 @@ public class TeamBuilder {
             for (Participant p : team.getMembers()) {
                 if (!allParticipants.add(p)) {
                     duplicateCount++;
-                    System.err.println("❌ DUPLICATE: " + p.getId() + " - " + p.getName());
+                    logger.error("DUPLICATE: " + p.getId() + " - " + p.getName());
                 }
             }
         }
@@ -227,15 +268,15 @@ public class TeamBuilder {
             for (Participant p : team.getMembers()) {
                 if (!allParticipants.add(p)) {
                     duplicateCount++;
-                    System.err.println("❌ DUPLICATE: " + p.getId() + " - " + p.getName());
+                    logger.error("DUPLICATE: " + p.getId() + " - " + p.getName());
                 }
             }
         }
 
         if (duplicateCount > 0) {
-            System.err.println("❌ Found " + duplicateCount + " duplicate participant assignments!");
+            logger.error("Found " + duplicateCount + " duplicate participant assignments!");
         } else {
-            System.out.println("✅ No duplicate participants found.");
+            logger.debug("No duplicate participants found");
         }
     }
 
