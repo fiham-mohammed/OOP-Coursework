@@ -47,8 +47,8 @@ public class Main {
 
 
             if (userRole == 1) {
-                // Organizer Flow - using EnhancedTeamBuilder for better matching
-                TeamBuilder teamBuilder = new TeamBuilder(participants, 4); // default size
+                // Organizer Flow - using TeamBuilder for better matching
+                TeamBuilder teamBuilder = new TeamBuilder(participants, 4);
                 handleOrganizerFlow(sc, fm, participants, pc, teamBuilder);
             } else if (userRole == 2) {
                 // Participant Flow (Start survey)
@@ -334,7 +334,6 @@ public class Main {
         }
     }
 
-    // ========== EXISTING METHODS WITH LOGGING ==========
 
     // Handle participant survey flow
     private static void handleParticipantSurvey(SurveyManager surveyManager, List<Participant> participants, Scanner sc) {
@@ -355,7 +354,7 @@ public class Main {
         executor.shutdown();
     }
 
-    // Method to edit participant details
+    // Method to edit participant details (UPDATED WITH EMAIL DUPLICATE VALIDATION)
     private static void editParticipantDetails(Scanner sc, List<Participant> participants) {
         logger.debug("Starting participant edit process");
 
@@ -404,12 +403,39 @@ public class Main {
             logger.debug("Updated name for participant: " + participantToEdit.getId());
         }
 
-        // Enter new email
-        System.out.print("Enter new email (leave empty to keep current): ");
-        String newEmail = sc.nextLine().trim();
-        if (!newEmail.isEmpty()) {
-            participantToEdit.setEmail(newEmail);
-            logger.debug("Updated email for participant: " + participantToEdit.getId());
+        // Enter new email WITH DUPLICATE VALIDATION
+        boolean emailUpdated = false;
+        while (!emailUpdated) {
+            System.out.print("Enter new email (leave empty to keep current): ");
+            String newEmail = sc.nextLine().trim();
+
+            if (newEmail.isEmpty()) {
+                emailUpdated = true; // Keep current email
+                break;
+            }
+
+            // Check if email already exists (excluding the current participant)
+            boolean isDuplicate = false;
+            String normalizedNewEmail = newEmail.trim().toLowerCase();
+
+            for (Participant p : participants) {
+                if (p != participantToEdit && p.getEmail() != null) {
+                    String normalizedExistingEmail = p.getEmail().trim().toLowerCase();
+                    if (normalizedExistingEmail.equals(normalizedNewEmail)) {
+                        isDuplicate = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isDuplicate) {
+                System.out.println("❌ This email is already registered by another participant. Please use a different email.");
+                System.out.println("Press Enter to skip email update, or enter a different email:");
+            } else {
+                participantToEdit.setEmail(newEmail);
+                logger.debug("Updated email for participant: " + participantToEdit.getId());
+                emailUpdated = true;
+            }
         }
 
         // Select new interest with validation

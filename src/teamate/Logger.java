@@ -66,15 +66,8 @@ public class Logger {
         String timestamp = DATE_FORMAT.format(new Date());
         String logMessage = String.format("[%s] %s - %s", level, timestamp, message);
 
-        // Console output
-        switch (level) {
-            case ERROR -> System.err.println(logMessage);
-            case WARN -> System.out.println("\u001B[33m" + logMessage + "\u001B[0m"); // Yellow
-            case INFO -> System.out.println("\u001B[32m" + logMessage + "\u001B[0m"); // Green
-            default -> System.out.println(logMessage);
-        }
-
-        // File output
+        // REMOVED ALL CONSOLE OUTPUT
+        // File output only
         if (writeToFile) {
             logToFile(logMessage);
         }

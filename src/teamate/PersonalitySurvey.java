@@ -124,13 +124,40 @@ public class PersonalitySurvey extends Survey {
         while (true) {
             System.out.print("Enter Email: ");
             email = sc.nextLine().trim();
+
             if (!isValidEmail(email)) {
                 System.out.println("Invalid email format! Please enter a valid email.");
             } else {
-                break;
+                // Check if email already exists in the CSV file
+                if (isEmailInCSV(email)) {
+                    System.out.println("❌ This email is already registered. Please use a different email.");
+                } else {
+                    break;
+                }
             }
         }
         return email;
+    }
+
+    // New helper method to check if email exists in CSV
+    private boolean isEmailInCSV(String email) {
+        try (BufferedReader reader = new BufferedReader(new FileReader("C:/Users/User/Downloads/New folder/teamate_coursework_full/participants_sample.csv"))) {
+            String line;
+            reader.readLine(); // Skip header
+
+            while ((line = reader.readLine()) != null) {
+                String[] tokens = line.split(",", -1);
+                if (tokens.length > 2) { // Email is typically in 3rd column (index 2)
+                    String existingEmail = tokens[2].trim();
+                    if (existingEmail.equalsIgnoreCase(email.trim())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Error reading CSV to check email duplicates", e);
+        }
+        return false;
     }
 
     // Helper method to ask for interest

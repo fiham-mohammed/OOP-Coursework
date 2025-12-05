@@ -1,4 +1,3 @@
-ID,Name,Email,PreferredGame,SkillLevel,PreferredRole,PersonalityScore,PersonalityTyp
 P001,Participant_1,user1@university.edu,Chess,2,Strategist,95,Leader
 P002,Participant_2,user2@university.edu,FIFA,5,Attacker,80,Balanced
 P003,Participant_3,user3@university.edu,FIFA,4,Defender,66,Thinker
@@ -99,3 +98,5 @@ P097,Participant_97,user97@university.edu,FIFA,3,Attacker,96,Leader
 P098,Participant_98,user98@university.edu,CS:GO,5,Defender,83,Balanced
 P099,Participant_99,user99@university.edu,Valorant,3,Supporter,66,Thinker
 P100,Participant_100,user100@university.edu,CS:GO,7,Coordinator,97,Leader
+P101,Fiham,Rayfiham@gamil.com,Dota,8,Strategist,80,Balanced
+P102,Avyus,saai@gail.cmm,Valorant,9,Strategist,72,Undefined
