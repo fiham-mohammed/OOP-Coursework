@@ -148,7 +148,7 @@ public class FileManager {
         for (Participant p : participants) {
             Team bestTeam = null;
             for (Team t : teams) {
-                if (t.size() < teamSize) {  // Check for available team slots
+                if (t.size() < teamSize) {
                     bestTeam = t;
                     break;
                 }
